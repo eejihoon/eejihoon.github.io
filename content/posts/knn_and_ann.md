@@ -2,8 +2,8 @@
 title: "유사성 기반 탐색: k-NN과 근사 최근접 이웃(ANN) 알고리즘"
 author: "easy"
 date: "2025-05-17T14:30:00+09:00"
-summary: "유사성 기반 탐색의 대표 알고리즘인 k-NN의 원리와 한계, 그리고 이를 극복하기 위한 근사 최근접 이웃(ANN) 기법의 개념과 특징을 설명합니다."
-description: "추천 시스템, 정보 검색, 시맨틱 분석 등 다양한 분야에서 활용되는 k-최근접 이웃(k-NN) 알고리즘의 동작 원리와 한계점을 살펴보고, 대규모·고차원 데이터 환경에서 효율적인 유사성 검색을 가능하게 하는 근사 최근접 이웃(ANN) 기법의 주요 원리와 응용 사례를 소개합니다."
+summary: "k-NN 및 ANN 학습 기록: k-NN의 정의, 유사성 측정, 장단점 및 한계(계산 복잡도, 차원의 저주 등)를 살펴보고, 이를 보완하는 ANN의 개념, 이점, 인덱싱 기반 작동 원리, 주요 트레이드오프 및 응용 분야 요약."
+description: "k-NN(k-Nearest Neighbors)과 ANN(Approximate Nearest Neighbor) 알고리즘에 대한 학습 노트: 각 알고리즘의 기본 원리, 장단점, 주요 한계 및 ANN의 필요성과 작동 방식(인덱싱) 등을 중심으로 정리."
 toc: true
 readTime: true
 autonumber: true
@@ -12,7 +12,7 @@ tags: ["knn", "ANN", "AI", "ML"]
 showTags: false
 hideBackToTop: false
 ---
-추천 시스템, 콘텐츠 기반 정보 검색, 시맨틱 분석 등 다양한 분야에서 '유사성(similarity)'에 기반한 데이터 탐색이 중요해지고 있다. 유사성 기반 탐색의 기본적인 접근 방식으로 k-최근접 이웃(k-Nearest Neighbors, k-NN)과 근사 이웃 탐색(Approximate Nearest Neighbor, ANN)이 있다. 본 글에서는 k-NN의 원리 및 한계를 이해하고, 이의 대안으로 ANN의 개념과 기술적 특징을 설명한다.
+유사성(Similarity) 기반 데이터 탐색은 추천 시스템이나 데이터 검색 등 다양한 분야에서 사용된다. 유사성 탐색의 기본적인 접근법 중 하나로 k-최근접 이웃(k-Nearest Neighbors, k-NN) 알고리즘이 있다. 이와 함께 데이터의 규모와 차원이 커짐에 따라 발생하는 한계를 극복하기 위한 근사 최근접 이웃(Approximate Nearest Neighbor, ANN) 기법도 중요하게 다뤄진다. k-NN의 기본적인 원리와 주요 특징, 한계점들을 먼저 살펴보고, 이어서 ANN이 등장하게 된 배경과 함께 주요 개념 및 기술적 특징들을 정리한다.
 
 ## 1. k-Nearest Neighbor(k-NN)
 ### 1-1 k-NN의 정의 및 원리
