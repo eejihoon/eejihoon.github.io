@@ -1,6 +1,6 @@
 ---
 title: "VARCHAR 데이터 타입 상세 분석: 길이, 문자셋, 그리고 CHAR와의 비교"
-author: "easy"
+author: "hoon"
 date: "2025-02-25T10:00:00+09:00"
 summary: "VARCHAR 타입 학습 기록: 가변 길이 특성, 길이 저장 바이트의 역할, 문자셋(utf8mb4 등)에 따른 저장 공간 변화, CHAR와의 차이점 요약."
 description: "VARCHAR 데이터 타입에 대한 개인 학습 노트: 동작 원리, 길이 계산, 문자셋 관계, CHAR 타입과의 비교 등을 중심으로 정리."

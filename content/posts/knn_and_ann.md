@@ -1,6 +1,6 @@
 ---
 title: "유사성 기반 탐색: k-NN과 근사 최근접 이웃(ANN) 알고리즘"
-author: "easy"
+author: "hoon"
 date: "2025-05-17T14:30:00+09:00"
 summary: "k-NN 및 ANN 학습 기록: k-NN의 정의, 유사성 측정, 장단점 및 한계(계산 복잡도, 차원의 저주 등)를 살펴보고, 이를 보완하는 ANN의 개념, 이점, 인덱싱 기반 작동 원리, 주요 트레이드오프 및 응용 분야 요약."
 description: "k-NN(k-Nearest Neighbors)과 ANN(Approximate Nearest Neighbor) 알고리즘에 대한 학습 노트: 각 알고리즘의 기본 원리, 장단점, 주요 한계 및 ANN의 필요성과 작동 방식(인덱싱) 등을 중심으로 정리."
