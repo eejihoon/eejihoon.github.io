@@ -376,3 +376,335 @@ This mundane data copying ended up being one of the dominate items for the origi
 Although we had built things in a fairly generic way, each new data source required custom configuration to set up. It also proved to be the source of a huge number of errors and failures. The site features we had implemented on Hadoop became popular and we found ourselves with a long list of interested engineers. Each user had a list of systems they wanted integration with and a long list of new data feeds they wanted.
 ```
 
+## 링크드인에서
+링크드인이 중앙 집중식 관계형 데이터베이스에서 여러 분산 시스템으로 전환하는 과정을 지켜보면서 이러한 데이터 통합 문제가 어떻게 나타나는지 직접 목격할 수 있었다.
+
+링크드인의 주요 데이터 시스템은 다음과 같다.
+- 검색
+- 소셜 그래프
+- Voldmort (키-값 저장소)
+- Espresso (문서 저장소)
+- 추천 엔진
+- OLAP 쿼리 엔진
+- 하둡
+- 테라데이터
+- 모니터링 그래프 및 메트릭 서비스
+
+이것들은 각각 특정 분야에서 고급 기능을 제공하는 전문화된 분산 시스템이다.
+
+데이터 흐름에 로그를 사용한다는 아이디어는 내가 링크드인에 합류하기 전부터 논의되었다. 우리가 초기에 개발한 인프라 중 하나는 '데이터버스databus'라는 서비스였는데, 이는 초창기 Oracle 테이블 위에 로그 캐싱 추상화 계층을 제공하여 데이터베이스 변경 사항에 대한 구독을 확장하고, 이를 통해 소셜 그래프와 검색 인덱스에 데이터를 공급할 수 있도록 했다.
+
+맥락을 제공하기 위해 약간의 역사를 설명하자면, 내 개인적인 참여(Jay Kreps가 이 프로젝트에 참여한 시기를 말함)는 2008년부터 시작됐다. 내 다음 프로젝트는 하둡 설정을 제대로 동작시키고, 일부 추천 프로세스를 그곳으로 옮기는 것이었다. 이 분야에 경험이 없었기 때문에 우리는 당연히 데이터 입출력에 몇 주를 할애하고 나머지 시간은 멋진 예측 알고리즘을 구현하는 데 사용하기로 계획했다. 그렇게 긴 고생길이 시작됐다.
+
+우리는 원래 기존 Oracle 데이터 웨어하우스에서 데이터를 그냥 가져올 계획이었다. 가장 먼저 발견한 것은 Oracle에서 데이터를 빠르게 가져오는 것이 일종의 '어둠의 기술'과 같다는 점이다. 설상가상으로, 데이터 웨어하우스 처리는 우리가 하둡을 위해 계획했던 프로덕션 배치 처리에 적합하지 않았다. 대부분의 처리는 되돌릴 수 없었고 수행되는 리포팅 작업에 특화되어 있었다. 결국 우리는 데이터 웨어하우스를 피하고 원본 데이터베이스와 로그 파일로 직접 접근했다. 마지막으로 결과 제공을 위해 데이터를 키-값 저장소로 로드하는 또 다른 파이프라인을 구축했다.
+
+이 평범한 데이터 복사 작업이 결국 초기 개발에서 가장 큰 비중을 차지하는 항목이었다. 더 나쁜 것은, 파이프라인 중 어느 하나라도 문제가 생기면 하둡 시스템은 거의 쓸모가 없다는 점이다. 잘못된 데이터로 멋진 알고리즘을 실행해봤자 더 많은 잘못된 데이터만 생상할 뿐이다.
+
+비록 우리가 꽤 일반적인 방식으로 시스템을 구축했지만 각각의 새로운 데이터 소스는 설정을 위한 커스텀 구성이 필요했다. 또한 이것은 엄청난 수의 오류와 장애의 원인이 되기도 했다. 우리가 하둡에서 구현했던 사이트 기능들이 인기를 얻게 되면서 관심을 보이는 엔지니어들을 생겼다. 각 사용자는 자신들이 통합하고 싶은 시스템 목록과 원하는 새로운 데이터 피드 목록을 가지고 있었다.
+
+```
+A few things slowly became clear to me.
+
+First, the pipelines we had built, though a bit of a mess, were actually extremely valuable. Just the process of making data available in a new processing system (Hadoop) unlocked a lot of possibilities. New computation was possible on the data that would have been hard to do before. Many new products and analysis just came from putting together multiple pieces of data that had previously been locked up in specialized systems.
+
+Second, it was clear that reliable data loads would require deep support from the data pipeline. If we captured all the structure we needed, we could make Hadoop data loads fully automatic, so that no manual effort was expanded adding new data sources or handling schema changes—data would just magically appear in HDFS and Hive tables would automatically be generated for new data sources with the appropriate columns.
+
+Third, we still had very low data coverage. That is, if you looked at the overall percentage of the data LinkedIn had that was available in Hadoop, it was still very incomplete. And getting to completion was not going to be easy given the amount of effort required to operationalize each new data source.
+
+The way we had been proceeding, building out custom data loads for each data source and destination, was clearly infeasible. We had dozens of data systems and data repositories. Connecting all of these would have lead to building custom piping between each pair of systems something like this:
+
+Note that data often flows in both directions, as many systems (databases, Hadoop) are both sources and destinations for data transfer. This meant we would end up building two pipelines per system: one to get data in and one to get data out.
+
+This clearly would take an army of people to build and would never be operable. As we approached fully connectivity we would end up with something like O(N2) pipelines.
+
+Instead, we needed something generic like this:
+
+Note that data often flows in both directions, as many systems (databases, Hadoop) are both sources and destinations for data transfer. This meant we would end up building two pipelines per system: one to get data in and one to get data out.
+
+This clearly would take an army of people to build and would never be operable. As we approached fully connectivity we would end up with something like O(N2) pipelines.
+
+Instead, we needed something generic like this:
+
+As much as possible, we needed to isolate each consumer from the source of the data. They should ideally integrate with just a single data repository that would give them access to everything.
+
+The idea is that adding a new data system—be it a data source or a data destination—should create integration work only to connect it to a single pipeline instead of each consumer of data.
+
+This experience lead me to focus on building Kafka to combine what we had seen in messaging systems with the log concept popular in databases and distributed system internals. We wanted something to act as a central pipeline first for all activity data, and eventually for many other uses, including data deployment out of Hadoop, monitoring data, etc.
+
+For a long time, Kafka was a little unique (some would say odd) as an infrastructure product—neither a database nor a log file collection system nor a traditional messaging system. But recently Amazon has offered a service that is very very similar to Kafka called Kinesis. The similarity goes right down to the way partitioning is handled, data is retained, and the fairly odd split in the Kafka API between high- and low-level consumers. I was pretty happy about this. A sign you've created a good infrastructure abstraction is that AWS offers it as a service! Their vision for this seems to be exactly similar to what I am describing: it is the piping that connects all their distributed systems—DynamoDB, RedShift, S3, etc.—as well as the basis for distributed stream processing using EC2.
+```
+
+몇 가지 사실이 명확해지기 시작했다.
+
+첫째, 우리가 구축한 파이프라인은 약간 엉성했지만, 실제로 매우 가치 있는 것이었다. 새로운 처리 시스템(하둡)에서 데이터를 사용할 수 있게 만드는 과정만으로도 많은 가능성이 열렸다.
+이전에는 하기 어려웠던 데이터에 대한 새로운 계산이 가능해졌다. 많은 새로운 제품과 분석이 단순히 이전에 전문화된 시시ㅡ템에 갇혀 있떤 여러 데이터 조각을 결합하는 것만으로도 탄생했다.
+
+둘째, 신뢰할 수 있는 데이터 로드는 데이터 파이프라인의 깊은 지원이 필요하다는 것이 명확해졌따. 우리가 필요한 모든 구조를 캡처할 수 있다면, 하둡 데이터 로드를 완전히 자동화할 수 있어서, 새로운 데이터 소스를 추가하거나 스키마 변경을 처리하는 데 수동적인 노력을 들이지 않아도 된다.
+데이터는 마법처럼 HDFS에 나타나고, 새로운 데이터 소스에 대해 적절한 칼럼을 가진 Hive 테이블이 자동으로 생성된다.
+
+셋째, 우리는 여전히 낮은 데이터 커버리지를 가지고 있었다. 즉, 링크드인이 보유한 전체 데이터 중에서 하둡에서 이용할 수 있는 데이터 비율을 살펴보면, 여전히 불완전했다. 그리고 각각 새로운 데이터 소스를 운영화하는 데 필요한 노력의 양을 고려할 때, 완전한 커버리지에 도달하는 것은 쉽지 않을 것이었다.
+
+우리가 진행해왔던 방식, 즉 각 데이터 소스와 목적지에 대해 맞춤형 데이터를 구축하는 것은 명백히 실행 불가능했다. 우리에게는 수십 개의 데이터 시스템과 저장소가 있었다. 이 모든 것을 연결하는 것은 각 시스템 쌍 사이에 맞춤형 파이프라인을 구축하는 것으로 이어졌을 것이다. 대략 다음과 같은 모습으로:
+
+![datapipeline_complex](https://content.linkedin.com/content/dam/engineering/en-us/blog/migrated/datapipeline_complex.png)
+
+데이터는 양방향으로 흐른다. 데이터베이스, 하둡이 데이터 전송 소스이자 대상이기 때문이다. 이는 결국 시스템 당 두 개의 파이프라인, 즉 데이터를 가져오는 파이프라인과 데이터를 내보내는 파이프라인을 구축해야 된다는 의미다.
+이것은 엄청난 구축 비용이 든다. 모든 시스템을 다 연결하려고 하면, 연결해야 할 파이프라인 수가 시스템 수의 제곱에 비례해서 늘어나는 $O(N^{2})$ 상황이 된다. 예를 들어 시스템이 10개면 파이프라인은 100개가 필요한 식이다.
+
+그래서 이런 방식 대신 좀 더 범용적인 구조가 필요했다.
+
+![datapipeline_simple](https://content.linkedin.com/content/dam/engineering/en-us/blog/migrated/datapipeline_simple.png)
+
+가능한 한, 우리는 각 데이터 소비자를 데이터 원천으로부터 분리해야 했다. 이상적으로는 소비자들이 모든 데이터에 접근할 수 있는 단일 데이터 저장소와 통합해야 했다.
+
+핵심 아이디어는 이렇다. 새로운 데이터 시스템을 추가할 때 ㅡ 그것이 데이터 소스이든 데이터 목적지data destination이든 ㅡ 각 데이터 소비자와 개별적으로 연결하는 작업을 하는 대신, 하나의 파이프라인에만 연결하는 통합 작업만으로 충분해야 한다는 것이다.
+
+이러한 경험은 내가 메시징 시스템에서 보았던 것과 데이터베이스 및 분산 시스템 내부에서 널리 사용되는 로그 개념을 결합하여 카프카를 구축하는 데 집중하게 된 계기가 되었다. 우리는 모든 활동 데이터에 대한 중앙 파이프라인 역할을 할 무언가를 원했고, 결국에는 하둡에서 데이터를 배포하거나 모니터링 데이터를 처리하는 등 다른 많은 용도로도 확장되기를 바랐다.
+
+오랫동안 카프카는 인프라 제품으로서 다소 독특한 존재였다. 데이터베이스도 아니고, 로그 파일 수집 시스템도 아니며, 전통적인 메시징 시스템도 아니었다. 그러나 최근 아마존은 키네시스라는 카프카와 매우 유사한 서비스를 제공하기 시작했다. 파티셔닝 처리 방식, 데이터 보존 방식, 그리고 카프카 API에서 고급 소비자high-level consumer와 저급 소비자low-level consumer 간 다소 특이한 구분 방식에 이르기까지 그 유사성은 놀라울 정도다. 
+이 서비스에 대한 그들의 비전은 내가 설명하는 것과 정확히 일치하는 것으로 보인다. 즉 키네시스는 그들의 모든 분산 시스템들을 연결하는 파이프라인이지 EC2를 사용한 분산 스트림 처리의 기반이 되는 것이다.
+
+
+> **Notes**
+> - **HDFS(Hadoop Distributed File System)**
+>   - Hadoop의 분산 파일 시스템이다. 대용량 파일을 여러 서버에 나누어 저장하고, 각 파일 조각을 여러 서버에 복사해두어 하나의 서버가 고장나도 데이터가 손실되지 않도록 한다. 일반적인 컴퓨터 하드디스크처럼 파일을 저장하는 역할을 하지만, 수백 대 또는 수천 대 서버에 걸쳐 작동한다.
+> - **Hive**
+>   - Hive: Hadoop 위에서 작동하는 데이터 웨어하우스 소프트웨어다. HDFS에 저장된 대용량 데이터를 SQL과 유사한 언어로 쿼리할 수 있다.
+>   - Hive Tables: Hive에서 데이터를 구조화하여 표현하는 방식. 관계형 데이터베이스의 테이블과 유사하게 행과 열로 구성되지만, 실제로는 HDFS에 저장된 파일들을 테이블 형태로 볼 수 있게 해주는 메타데이터 정보다.
+> - **Data Converage**
+>   - 전체 데이터 중에서 특정 시스템이나 프로세스가 다룰 수 있는 데이터의 비율을
+> - **Custom Piping Between Each Pair of Systems**
+>   - N개의 시스템이 있을 때, 각 시스템이 다른 모든 시스템과 직접 연결되려면 N*(N-1)/2개의 연결이 필요하다. 예를 들어 10개의 시스템이 있다면 45개의 서로 다른 연결을 만들어야 한다.
+> - **고급 소비자High-Level Consumer**
+>   - 카프카 메시지 소비를 자동화하고 쉽게 사용하도록 추상화된 API. 그룹 관리, 오프셋 관리 등을 자동으로 처리
+> - **저급 소비자 (Low-Level Consumer / SimpleConsumer)**
+>  - 메시지 소비 과정을 세밀하게 직접 제어할 수 있는 API. 특정 파티션/오프셋 지정, 수동 오프셋 관리. 유연하지만 복잡
+
+```
+Relationship to ETL and the Data Warehouse
+Let's talk data warehousing for a bit. The data warehouse is meant to be a repository of the clean, integrated data structured to support analysis. This is a great idea. For those not in the know, the data warehousing methodology involves periodically extracting data from source databases, munging it into some kind of understandable form, and loading it into a central data warehouse. Having this central location that contains a clean copy of all your data is a hugely valuable asset for data-intensive analysis and processing. At a high level, this methodology doesn't change too much whether you use a traditional data warehouse like Oracle or Teradata or Hadoop, though you might switch up the order of loading and munging.
+
+A data warehouse containing clean, integrated data is a phenomenal asset, but the mechanics of getting this are a bit out of date.
+```
+
+### ETL과 데이터 웨어하우스와의 관계
+데이터 웨어하우스는 분석을 지원하기 위해 구조화된, 깨끗하고 통합된 데이터 저장소가 되도록 설계되었다. 잘 모르는 사람을 위해 설명하자면, 데이터 웨어하우증 방법론은 주기적으로 원본 베이스에서 데이터를 추출하고, 이를 이해할 수 있는 형태로 가공한 다음, 중앙 데이터 웨어하우스에 로드하는 것이다.
+모든 데이터의 깨끗한 사본이 있는 이 중앙 위치는 데이터 집약적인 분석과 처리를 위한 매우 귀중한 자산이다. 큰 틀에서 이 방법론은 로딩과 정제Munging 순서를 바꿀 수는 있지만, Oracle, Teradata 또는 Hadoop과 같은 기존 데이터 웨어하우스를 사용하든, Oracle을 사용하든 크게 달라지지 않는다.
+깨끗하고 통합된 데이터를 포함하는 데이터 웨어하우스는 놀라운 자산이지만, 이를 구축하는 메커니즘은 다소 시대에 뒤떨어진 면이 있다.
+
+```
+The key problem for a data-centric organization is coupling the clean integrated data to the data warehouse. A data warehouse is a piece of batch query infrastructure which is well suited to many kinds of reporting and ad hoc analysis, particularly when the queries involve simple counting, aggregation, and filtering. But having a batch system be the only repository of clean complete data means the data is unavailable for systems requiring a real-time feed—real-time processing, search indexing, monitoring systems, etc.
+
+In my view, ETL is really two things. First, it is an extraction and data cleanup process—essentially liberating data locked up in a variety of systems in the organization and removing an system-specific non-sense. Secondly, that data is restructured for data warehousing queries (i.e. made to fit the type system of a relational DB, forced into a star or snowflake schema, perhaps broken up into a high performance column format, etc). Conflating these two things is a problem. The clean, integrated repository of data should be available in real-time as well for low-latency processing as well as indexing in other real-time storage systems.
+
+I think this has the added benefit of making data warehousing ETL much more organizationally scalable. The classic problem of the data warehouse team is that they are responsible for collecting and cleaning all the data generated by every other team in the organization. The incentives are not aligned: data producers are often not very aware of the use of the data in the data warehouse and end up creating data that is hard to extract or requires heavy, hard to scale transformation to get into usable form. Of course, the central team never quite manages to scale to match the pace of the rest of the organization, so data coverage is always spotty, data flow is fragile, and changes are slow.
+
+A better approach is to have a central pipeline, the log, with a well defined API for adding data. The responsibility of integrating with this pipeline and providing a clean, well-structured data feed lies with the producer of this data feed. This means that as part of their system design and implementation they must consider the problem of getting data out and into a well structured form for delivery to the central pipeline. The addition of new storage systems is of no consequence to the data warehouse team as they have a central point of integration. The data warehouse team handles only the simpler problem of loading structured feeds of data from the central log and carrying out transformation specific to their system.
+```
+
+데이터 중심 조직의 핵심 문제는 깨끗하게 통합된 데이터를 데이터 웨어하우스에만 국한시킨다는 점이다. 데이터 웨어하우스는 일괄 처리(batch) 쿼리 인프라의 일부로서, 특히 쿼리가 단순 집계, 합산, 필터링을 포함할 경우 다양한 리포팅 및 임시 분석ad hoc analysis에 효과적이다. 그러나 일괄 처리 시스템이 정제되고 완전한 데이터의 유일한 저장소가 된다는 것은, 실시간 피드를 필요로 하는 시스템들—실시간 처리, 검색 인덱싱, 모니터링 시스템 등—에서는 그 데이터를 활용할 수 없음을 의미한다.
+
+내 관점에서 ETL은 실제로는 두 가지 요소를 포함한다. 첫째, 추출 및 데이터 정제 프로세스이다—이는 본질적으로 조직 내 다양한 시스템에 갇혀 있는 데이터를 해방시키고 각 시스템 특유의 불필요한 요소들을 제거하는 과정이다. 둘째, 이렇게 정제된 데이터는 데이터 웨어하우징 쿼리에 적합하도록 재구성된다 (가령, 관계형 데이터베이스의 타입 시스템에 맞추거나, 스타 스키마 또는 스노우플레이크 스키마 형태로 강제하거나, 때로는 고성능 컬럼 형식으로 분해하는 등). 이 두 가지를 혼동하는 것이 문제이다. 정제되고 통합된 데이터 저장소는 실시간으로도 사용 가능해야 하며, 지연 시간이 짧은 처리low-latency processing는 물론 다른 실시간 저장 시스템에서의 인덱싱에도 활용될 수 있어야 한다.
+
+나는 이것이 데이터 웨어하우징 ETL을 조직적으로 훨씬 더 확장 가능하게 만드는 부가적인 이점을 제공한다고 생각한다. 데이터 웨어하우스 팀의 고질적인 문제는 조직 내 다른 모든 팀이 생성하는 모든 데이터를 수집하고 정제하는 책임을 맡는다는 점이다. 인센티브 구조가 어긋나 있다: 데이터를 생산하는 측data producers은 종종 데이터 웨어하우스에서 해당 데이터가 어떻게 사용되는지 명확히 인지하지 못하며, 결국 추출하기 어렵거나 사용 가능한 형태로 만들기 위해 규모를 키우기 어려운 과도한 변환이 필요한 데이터를 생성하게 된다. 당연하게도, 중앙 팀은 조직의 나머지 부분의 변화 속도에 맞춰 규모를 확장하는 데 항상 어려움을 겪으며, 그 결과 데이터 커버리지는 늘 부분적이고, 데이터 흐름은 취약하며, 변경 사항 반영은 느리다.
+
+더 나은 접근법은 데이터를 추가하기 위한 잘 정의된 API를 갖춘 중앙 파이프라인, 즉 로그(log)를 마련하는 것이다. 이 파이프라인과 통합하고 깨끗하며 잘 구조화된 데이터 피드를 제공할 책임은 해당 데이터 피드의 생산자에게 있다. 이는 그들이 시스템 설계 및 구현 단계부터 데이터를 추출하여 중앙 파이프라인으로 전달하기 위한 잘 구조화된 형태로 만드는 문제를 고려해야 함을 의미한다. 새로운 저장 시스템의 추가는 데이터 웨어하우스 팀에게 큰 영향을 미치지 않는다. 왜냐하면 그들에게는 중앙 통합 지점이 있기 때문이다. 데이터 웨어하우스 팀은 중앙 로그로부터 구조화된 데이터 피드를 로드하고 자신들의 시스템에 특화된 변환을 수행하는, 상대적으로 더 단순한 문제만을 처리하게 된다.
+
+> ****Notes**
+> - **스타 스키마 (Star Schema) 및 스노우플레이크 스키마 (Snowflake Schema)**
+>  - 데이터 웨어하우스에서 데이터를 구성하는 대표적인 모델링 방식이다.
+>  - Star Schema: 중심에서 사실Fact 테이블을 두고, 그 주위에 여러 차원Dimension 테이블들이 별 모양처럼 연결된 구조다. 쿼리 성능이 좋고 이해하기 쉽다.
+>  - Snowflake schema: 스타 스키마에서 차원 테이블을 더 정규화하여 여러 개 작은 테이블로 나눈 구조다. 눈꽃송이 모양과 비슷하며, 중복을 줄일 수 있지만 쿼리가 더 복잡해질 수 있다.
+
+```
+This point about organizational scalability becomes particularly important when one considers adopting additional data systems beyond a traditional data warehouse. Say, for example, that one wishes to provide search capabilities over the complete data set of the organization. Or, say that one wants to provide sub-second monitoring of data streams with real-time trend graphs and alerting. In either of these cases, the infrastructure of the traditional data warehouse or even a Hadoop cluster is going to be inappropriate. Worse, the ETL processing pipeline built to support database loads is likely of no use for feeding these other systems, making bootstrapping these pieces of infrastructure as large an undertaking as adopting a data warehouse. This likely isn't feasible and probably helps explain why most organizations do not have these capabilities easily available for all their data. By contrast, if the organization had built out feeds of uniform, well-structured data, getting any new system full access to all data requires only a single bit of integration plumbing to attach to the pipeline.
+
+This architecture also raises a set of different options for where a particular cleanup or transformation can reside:
+
+It can be done by the data producer prior to adding the data to the company wide log.
+It can be done as a real-time transformation on the log (which in turn produces a new, transformed log)
+It can be done as part of the load process into some destination data system
+The best model is to have cleanup done prior to publishing the data to the log by the publisher of the data. This means ensuring the data is in a canonical form and doesn't retain any hold-overs from the particular code that produced it or the storage system in which it may have been maintained. These details are best handled by the team that creates the data since they know the most about their own data. Any logic applied in this stage should be lossless and reversible.
+
+Any kind of value-added transformation that can be done in real-time should be done as post-processing on the raw log feed produced. This would include things like sessionization of event data, or the addition of other derived fields that are of general interest. The original log is still available, but this real-time processing produces a derived log containing augmented data.
+
+Finally, only aggregation that is specific to the destination system should be performed as part of the loading process. This might include transforming data into a particular star or snowflake schema for analysis and reporting in a data warehouse. Because this stage, which most naturally maps to the traditional ETL process, is now done on a far cleaner and more uniform set of streams, it should be much simplified.
+```
+
+![pipeline_ownership](https://content.linkedin.com/content/dam/engineering/en-us/blog/migrated/pipeline_ownership.png)
+
+조직적 확장성에 대한 이러한 점은 전통적인 데이터 웨어하우스 외에 추가적인 데이터 시스템을 도입하는 것을 고려할 때 특히 중요해진다.
+예를 들어, 조직의 전체 데이터셋에 대한 검색 기능을 제공하고자 한다고 가정해 보자. 또는, 실시간 트렌드 그래프와 알림 기능을 갖춘 초 단위 이하의 데이터 스트림 모니터링을 제공하고자 한다고 가정해 보자.
+이 경우 모두 전통적인 데이터 웨어하우스나 심지어 하둡 클러스터의 인프라는 부적절할 것이다. 더 나쁜 것은, 데이터베이스 로드를 지원하기 위해 구축된 ETL 처리 파이프라인이 이러한 다른 시스템에 데이터를 공급하는 데는 거의 쓸모가 없어, 이러한 인프라 구성 요소를 처음부터 구축하는 것이 데이터 웨어하우스를 도입하는 것만큼이나 큰 작업이 된다는 점이다. 이는 아마도 실행 가능하지 않으며, 대부분의 조직이 모든 데이터에 대해 이러한 기능을 쉽게 사용할 수 없는 이유를 설명하는 데 도움이 될 것이다.
+반대로, 만약 조직이 균일하고 잘 구조화된 데이터 피드를 구축했다면, 새로운 시스템이 모든 데이터에 대한 전체 접근 권한을 얻는 것은 파이프라인에 연결하기 위한 단 하나의 통합 배관 작업만 필요로 한다.
+
+이 아키텍처는 또한 특정 정제 또는 변환 작업이 어디에 위치할 수 있는지에 대한 다양한 옵션을 제시한다.
+
+1. 데이터 생산자가 데이터를 회사 전체 로그에 추가하기 전에 수행할 수 있다.
+2. 로그에 대한 실시간 변환으로 수행될 수 있다. (이는 결국 새롭고 변환된 로그를 생성한다)
+3. 어떤 목적지 데이터 시스템으로 로드하는 과정의 일부로 수행될 수 있다.
+
+최상의 모델은 데이터 게시자가 로그에 데이터를 게시하기 전에 정제 작업을 수행하는 것이다. 이는 데이터가 표준 형식canonical form을 갖추고, 데이터를 생성한 특정 코드나 데이터가 유지되었을 수 있는 저장 시스템의 잔재를 보유하지 않도록 보장하는 것을 의미한다.
+이러한 세부 사항은 자신들의 데이터에 대해 가장 잘 아는 데이터를 생성한 팀이 가장 잘 처리할 수 있다. 이 단계에서 적용되는 모든 로직은 무손실lossless이고 되돌릴 수 있어야reversible 한다.
+
+실시간으로 수행될 수 있는 모든 종류의 부가가치 변환은 생성된 원시 로그 피드에 대한 후처리로 수행되어야 한다. 여기에는 이벤트 데이터의 세션화sessionization나 일반적으로 관심 있는 다른 파생 필드 추가 등이 포함될 수 있다. 원본 로그는 여전히 사용 가능하지만, 이 실시간 처리는 보강된 데이터를 포함하는 파생된 로그를 생성한다.
+
+마지막으로 목적지 시스템에 특정한 집계만이 로딩 과정의 일부로 수행되어야 한다. 이는 데이터 웨어하우스에서 분석 및 리포팅을 위해 데이터를 특정 스타 또는 스노우플레이크 스키마로 변환하는 것을 포함할 수 있다.
+가장 자연스럽게 전통적인 ETL 프로세스에 해당하는 이 단계는 이제 훨씬 깨끗하고 균일한 스트림 세트에 대해 수행되므로 훨씬 단순화 되어야 한다.
+
+
+```
+Log Files and Events
+Let's talk a little bit about a side benefit of this architecture: it enables decoupled, event-driven systems.
+
+The typical approach to activity data in the web industry is to log it out to text files where it can be scrapped into a data warehouse or into Hadoop for aggregation and querying. The problem with this is the same as the problem with all batch ETL: it couples the data flow to the data warehouse's capabilities and processing schedule.
+
+At LinkedIn, we have built our event data handling in a log-centric fashion. We are using Kafka as the central, multi-subscriber event log. We have defined several hundred event types, each capturing the unique attributes about a particular type of action. This covers everything from page views, ad impressions, and searches, to service invocations and application exceptions.
+
+To understand the advantages of this, imagine a simple event—showing a job posting on the job page. The job page should contain only the logic required to display the job. However, in a fairly dynamic site, this could easily become larded up with additional logic unrelated to showing the job. For example let's say we need to integrate the following systems:
+
+We need to send this data to Hadoop and data warehouse for offline processing purposes
+We need to count the view to ensure that the viewer is not attempting some kind of content scraping
+We need to aggregate this view for display in the Job poster's analytics page
+We need to record the view to ensure we properly impression cap any job recommendations for that user (we don't want to show the same thing over and over)
+Our recommendation system may need to record the view to correctly track the popularity of that job
+Etc
+Pretty soon, the simple act of displaying a job has become quite complex. And as we add other places where jobs are displayed—mobile applications, and so on—this logic must be carried over and the complexity increases. Worse, the systems that we need to interface with are now somewhat intertwined—the person working on displaying jobs needs to know about many other systems and features and make sure they are integrated properly. This is just a toy version of the problem, any real application would be more, not less, complex.
+
+The "event-driven" style provides an approach to simplifying this. The job display page now just shows a job and records the fact that a job was shown along with the relevant attributes of the job, the viewer, and any other useful facts about the display of the job. Each of the other interested systems—the recommendation system, the security system, the job poster analytics system, and the data warehouse—all just subscribe to the feed and do their processing. The display code need not be aware of these other systems, and needn't be changed if a new data consumer is added.
+```
+
+### 로그 파일과 이벤트
+이 아키텍처의 부수적인 이점에 대해 잠시 이야기 해보겠다. 이것은 느슨하게 결합된, 이벤트 기반 시스템을 가능하게 한다.
+
+웹 업계에서 활동 데이터에 대한 일반적인 접근 방식은 이를 텍스트 파일로 로깅하여 데이터 웨어하우스나 하둡으로 긁어모아 집계 및 쿼리하는 것이다. 이 문제점은 모든 일괄 처리 ETL의 문제점과 동일하다. 데이터 흐름이 데이터 웨어하우스의 기능과 처리 일정에 종속된다는 것이다.
+
+링크드인에서, 우리는 로그 중심 방식으로 이벤트 처리를 구축했다. 우리는 Kafka를 중앙의 다중 구독자multi-subscriber 이벤트 로그로 사용하고 있다. 특정 유형의 행동에 대한 고유한 속성을 포착하는 수백 가지 이벤트 유형을 정의했다. 이는 페이지 뷰, 광고 노출, 검색에서부터 서비스 호출 및 애플리케이션 예외에 이르기까지 모든 것을 포괄한다.
+
+이것의 장점을 이해하기 위해 간단한 이벤트를 상상해보자. 채용 공고 페이지에 채용 공고를 표시하는 것이다. 채용 공고 페이지에는 해당 공고를 표시하는 데 필요한 로직만 포함해야 한다. 그러나 상당히 동적인 사이트에서는 이것이 채용 공고 표시와 관련 없는 추가적인 로직으로 쉽게 복잡해질 수 있다. 예를 들어, 다음과 같은 시스템을 통합해야 한다고 가정해 보자.
+
+- 오프라인 처리 목적으로 이 데이터를 하둡 및 데이터 웨어하우스로 보내야 한다.
+- 조회 수를 계산하여 조회자가 어떤 종류의 콘텐츠 스크래핑을 시도하고 있지 않은지 확인해야 한다.
+- 채용 공고 게시자의 분석 페이지에 표시하기 위애 이 조회를 집계해야 한다.
+- 해당 사용자에 대한 채용 공고 추천이 적절히 노출 제한impression cap되도록 조회를 기록해야 한다. (동일한 것을 계속해서 보여주지 않기 위해)
+- 우리의 추천 시스템은 해당 채용 공고의 인기도를 정확하게 추적하기 위해 조회를 기록해야 할 수도 있다.
+- 기타 등등
+
+곧, 채용 공고를 표시하는 단순한 행위가 매우 복잡해진다. 그리고 채용 공고가 표시되는 다른 장소들ㅡ모바일 앱 등ㅡ을 추가해야 한다면 이 로직은 그대로 옮겨져야 하고 복잡성은 증가한다.
+더 나쁜 것은, 우리가 연동해야 하는 시스템이 이제 다소 뒤얽히게 된다는 것이다. 채용 공고 표시 작업을 하는 사람은 다른 많은 시스템과 기능에 대해 알아야 하고 그것이 제대로 통합되었는지 확인해야 한다. 이것은 문제의 아주 단순화된 버전일 뿐이며, 실제 애플리케이션은 이보다 덜 복잡한 것이 아니라 더 복잡할 것이다.
+
+"이벤트 기반" 스타일은 이를 단순화하는 접근 방식을 제공한다. 이제 채용 공고 표시는 단순히 채용 공고를 보여주고, 해당 공고의 관련 속성 조회자, 그리고 해당 공고 표시에 대한 다른 유용한 사실들과 함께 채용 공고가 표시되었다는 사실을 기록하기만 하면 된다. 다른 관심 있는 시스템들ㅡ추천 시스템, 보안 시스템, 채용 공고 게시자 분석 시스템, 그리고 데이터 웨어하우스ㅡ은 모두 그저 피드를 구독하고 각저의 처리를 수행한다.
+표시 코드는 이러한 다른 시스템들에 대해 알 필요가 없으며, 새로운 소비자가 추가되더라도 변경될 필요가 없다.
+
+```
+Building a Scalable Log
+Of course, separating publishers from subscribers is nothing new. But if you want to keep a commit log that acts as a multi-subscriber real-time journal of everything happening on a consumer-scale website, scalability will be a primary challenge. Using a log as a universal integration mechanism is never going to be more than an elegant fantasy if we can't build a log that is fast, cheap, and scalable enough to make this practical at scale.
+
+Systems people typically think of a distributed log as a slow, heavy-weight abstraction (and usually associate it only with the kind of "metadata" uses for which Zookeeper might be appropriate). But with a thoughtful implementation focused on journaling large data streams, this need not be true. At LinkedIn we are currently running over 60 billion unique message writes through Kafka per day (several hundred billion if you count the writes from mirroring between datacenters).
+
+We used a few tricks in Kafka to support this kind of scale:
+
+Partitioning the log
+Optimizing throughput by batching reads and writes
+Avoiding needless data copies
+In order to allow horizontal scaling we chop up our log into partitions:
+
+Each partition is a totally ordered log, but there is no global ordering between partitions (other than perhaps some wall-clock time you might include in your messages). The assignment of the messages to a particular partition is controllable by the writer, with most users choosing to partition by some kind of key (e.g. user id). Partitioning allows log appends to occur without co-ordination between shards and allows the throughput of the system to scale linearly with the Kafka cluster size.
+
+Each partition is replicated across a configurable number of replicas, each of which has an identical copy of the partition's log. At any time, a single one of them will act as the leader; if the leader fails, one of the replicas will take over as leader.
+
+Lack of a global order across partitions is a limitation, but we have not found it to be a major one. Indeed, interaction with the log typically comes from hundreds or thousands of distinct processes so it is not meaningful to talk about a total order over their behavior. Instead, the guarantees that we provide are that each partition is order preserving, and Kafka guarantees that appends to a particular partition from a single sender will be delivered in the order they are sent.
+
+A log, like a filesystem, is easy to optimize for linear read and write patterns. The log can group small reads and writes together into larger, high-throughput operations. Kafka pursues this optimization aggressively. Batching occurs from client to server when sending data, in writes to disk, in replication between servers, in data transfer to consumers, and in acknowledging committed data.
+
+Finally, Kafka uses a simple binary format that is maintained between in-memory log, on-disk log, and in network data transfers. This allows us to make use of numerous optimizations including zero-copy data transfer.
+
+The cumulative effect of these optimizations is that you can usually write and read data at the rate supported by the disk or network, even while maintaining data sets that vastly exceed memory.
+
+This write-up isn't meant to be primarily about Kafka so I won't go into further details. You can read a more detailed overview of LinkedIn's approach here and a thorough overview of Kafka's design here.
+```
+
+### 확장 가능한 로그 구축하기
+물론, 발행자와 구독자를 분리하는 것은 새로운 개념이 아니다. 그러나 만약 소비자 규모 웹사이트에서 일어나는 모든 일에 대한 다중 구독자 실시간 저널 역할을 하는 커밋 로그를 유지하고 싶다면, 확장성이 주요 과제가 될 것이다. 로그를 보편적인 통합 메커니즘으로 사용하는 것은, 이를 대규모로 실용적으로 만들 만큼 충분히 빠르고, 저렴하며, 확장 가능한 로그를 구축할 수 없다면 우아한 환상에 지나지 않을 것이다.
+
+시스템 분야 사람들은 일반적으로 분산 로그를 느리고 무거운 추상화로 생각한다. (그리고 보통 주키퍼가 적합할 수 있는 종류의 메타데이터 용도에만 연관 시킨다) 그러나 대용량 데이터 스트림을 저널링하는 데 초점을 맞춘 신중한 구현을 통해 이는 사실이 아닐 수도 있다. 링크드인에서 우리는 현재 하루에 600억 건 이상의 고유 메시지 쓰기를 Kafka를 통해 처리하고 있다.
+
+우리는 Kafka에서 이러한 규모를 지원하기 위해 몇 가지 기법을 사용했다.
+
+- 로그 파티셔닝
+- 읽기 및 쓰기 배치를 통한 처리량 최적화
+- 불필요한 데이터 복사 피하기
+
+수평적 확장을 가능하게 하기 위해 우리는 로그를 파티션으로 나눈다.
+
+![partitioned_log](https://content.linkedin.com/content/dam/engineering/en-us/blog/migrated/partitioned_log.png)
+
+각 파티션은 완전히 순서가 정해진 로그이지만, 파티션 간에는 전역적인 순서가 (메시지에 포함할 수 있는 어떤 벽시계 시간wall clock time 정도를 제외하고) 없다. 메시지를 특정 파티션에 할당하는 것은 작성자가 제어할 수 없으며, 대부분의 사용자는 어떤 종류의 키로 파티셔닝 하는 것을 선택한다. 파티셔닝은 샤드 간 조정 없이 로그 추가가 발생하도록 하며, 시스템 처리량이 Kafka 클러스터 크기에 따라 선형적으로 확장될 수 있게 한다.
+
+각 파티션은 설정 가능한 수의 복제본에 걸쳐 복제되며, 각 복제본은 해당 파티션 로그의 동일한 사본을 가진다. 어느 시점에서든, 그 중 하나가 리더 역할을 하며, 리더가 실패하면 복제본 중 하나가 리더로 대신하게 된다.
+
+파티션 간 전역적인 순서가 없다는 것은 한계이지만, 우리는 이것이 주요한 문제라고 생각하지 않았다. 실제로, 로그와 상호작용은 일반적으로 수백 또는 수천 개의 서로 다른 프로세스로부터 발생하므로 그들의 행동에 대한 전체 순서를 논하는 것은 의미가 없다. 대신, 우리가 제공하는 보장은 각 파티션이 순서를 보존하며, Kafka는 단일 발신자로부터 특정 파티션으로 추가 전송된 순서대로 전달될 것을 보장한다는 것이다.
+
+로그는 파일 시스템과 마찬가지로 선형적인 읽기 및 쓰기 패턴에 대해 최적화하기 쉽다. 로그는 작은 읽기와 쓰기를 더 크고 처리량이 높은 작업으로 그룹화할 수 있다. Kafka는 이러한 최적화를 적극적으로 추구한다. 데이터 전송 시 클라이언트에서 서버로, 디스크에 쓸 때, 서버 간 복제 시, 소비자로 데이터 전송 시, 그리고 커밋된 데이터를 확인할 때 배치가 발생한다.
+
+마지막으로 Kafka는 인메모리 로그, 디스크 상의 로그, 그리고 네트워크 데이터 전송 간 유지되는 간단한 바이너리 형식을 사용한다. 이를 통해 제로 카피zero-copy 데이터 전송을 포함한 수많은 최적화를 사용할 수 있다.
+
+이러한 최적화들의 누적 효과는 메모리를 훨씬 초과하는 데이터 세트를 유지하면서도 일반적으로 디스크나 네트워크가 지원하는 속도로 데이터를 읽고 쓸 수 있다는 것이다.
+
+> **Notes**
+> - Journaling
+>  - 변경 사항이 실제 데이터에 적용되기 전에 그 변경 내용을 순차적으로 기록하는 것. 시스템 장애 시 이 기록(저널 또는 로그)을 사용해 데이터를 복구하거나 일관성을 유지할 수 있음.
+
+```
+Part Three: Logs & Real-time Stream Processing
+So far, I have only described what amounts to a fancy method of copying data from place-to-place. But shlepping bytes between storage systems is not the end of the story. It turns out that "log" is another word for "stream" and logs are at the heart of stream processing.
+
+But, wait, what exactly is stream processing?
+
+If you are a fan of late 90s and early 2000s database literature or semi-successful data infrastructure products, you likely associate stream processing with efforts to build a SQL engine or "boxes and arrows" interface for event driven processing.
+
+If you follow the explosion of open source data systems, you likely associate stream processing with some of the systems in this space—for example, Storm, Akka, S4, and Samza. But most people see these as a kind of asynchronous message processing system not that different from a cluster-aware RPC layer (and in fact some things in this space are exactly that).
+
+Both these views are a little limited. Stream processing has nothing to do with SQL. Nor is it limited to real-time processing. There is no inherent reason you can't process the stream of data from yesterday or a month ago using a variety of different languages to express the computation.
+```
+
+## 로그와 실시간 스트림 처리
+지금까지 나는 데이터를 이곳저곳으로 복사하는 약간 세련된 방법에 관해서만 기술했다. 그러나 스토리지 시스템 간에 바이트를 옮기는 것이 이야기의 전부는 아니다. '로그'는 '스트림'의 다른 말이며, 로그는 스트림 처리의 핵심이다.
+그런데 스트림 처리란 정확히 무엇인가?
+만약 당신이 90년대 후반과 2000년대 초반 데이터베이스 문헌이나 어느 정도 성공한 인프라 제품의 팬이라면, 당신은 스트림 처리를 이벤트 기반 처리를 위한 SQL 엔진 또는 '상자와 화살표Boxes and arrows interface' 인터페이스를 구축하려는 노려과 연관 지을 것이다.
+
+만약 당신이 오픈 소스 데이터 시스템의 폭발적인 증가를 주시하고 있다면, 당신은 스트림 처리를 이 분야의 일부 시스템들ㅡ예를 들어, Storm, Akka, S4, Samzaㅡ과 연관 지을 것이다. 그러나 사람들 대부분은 이것을 클러스터 환경을 인지하는 RPC 계층과 크게 다르지 않은 일종의 비동기 메시지 처리 시스템으로 간주한다(그리고 실제로 이 분야의 일부는 정확히 그렇다).
+
+이 두 가지 관점 모두 다소 제한적이다. 스트림 처리는 SQL과 아무런 관련이 없다. 또한 실시간 처리에만 국한되지도 않는다. 다양한 언어를 사용하여 계산을 표현하면서 어제 또는 한 달 전 데이터 스트림을 처리할 수 없는 본질적인 이유는 없다.
+
+> **Notes**
+> - Boxes and arrows interface
+>  - GUI에서 데이터 처리 단계를 나타내는 상자(노드)들과 데이터 흐름을 나타내는 화살표(엣지)를 사용하여 사용자가 시각적으로 데이터 처리 파이프라인을 설계하고 구성할 수 있도록 하는 방식
+> - Storm, Akka, S4, Samza
+>  - 분산 환경에서 대량의 데이터 스트림을 실시간으로 처리하기 위한 오픈 소스 프레임워크 또는 플랫폼.
+>  - Storm: 실시간 계산을 위한 분산형 내결함성 시스템.
+>  - Akka: 동시성 및 분산 애플리케이션 구축을 위한 액터 기반 툴킷 및 런타임 (스트림 처리 모듈 포함).
+>  - S4 (Simple Scalable Streaming System): 범용, 분산형, 확장 가능한, 플러그형 스트림 처리 플랫폼.
+>  - Samza: Apache Kafka와 Hadoop YARN을 활용하는 분산 스트림 처리 프레임워크.
+> - 클러스터 환경을 인지하는 RPC 계층 (Cluster-aware RPC layer):
+>  - RPC (Remote Procedure Call): 한 프로그램이 네트워크상의 다른 컴퓨터에 있는 프로그램의 프로시저(함수)를 마치 로컬 프로시저처럼 호출할 수 있게 하는 기술.
+>  - 클러스터 환경 인지: 분산된 여러 서버(클러스터) 환경에서 어떤 서버에 요청을 보내야 하는지, 서버 장애 시 어떻게 대처해야 하는지 등을 고려하여 RPC를 수행하는 기능.
+>  - 일부 스트림 처리 시스템이 단순히 비동기적으로 메시지를 주고받으며 원격 프로시저를 호출하는 분산 시스템과 크게 다르지 않다는 비판적 시각을 나타냄.
+
+```
+I see stream processing as something much broader: infrastructure for continuous data processing. I think the computational model can be as general as MapReduce or other distributed processing frameworks, but with the ability to produce low-latency results.
+
+The real driver for the processing model is the method of data collection. Data which is collected in batch is naturally processed in batch. When data is collected continuously, it is naturally processed continuously.
+
+The US census provides a good example of batch data collection. The census periodically kicks off and does a brute force discovery and enumeration of US citizens by having people walking around door-to-door. This made a lot of sense in 1790 when the census was first begun. Data collection at the time was inherently batch oriented, it involved riding around on horseback and writing down records on paper, then transporting this batch of records to a central location where humans added up all the counts. These days, when you describe the census process one immediately wonders why we don't keep a journal of births and deaths and produce population counts either continuously or with whatever granularity is needed.
+
+This is an extreme example, but many data transfer processes still depend on taking periodic dumps and bulk transfer and integration. The only natural way to process a bulk dump is with a batch process. But as these processes are replaced with continuous feeds, one naturally starts to move towards continuous processing to smooth out the processing resources needed and reduce latency.
+```
+
+나는 스트림 처리를 훨씬 더 광범위한 것, 즉 지속적인 데이터 처리를 위한 인프라로 본다. 계산 모델은 맵리듀스나 다른 분산 처리 프레임워크만큼 일반적일 수 있지만, 낮은 지연 시간으로 결과를 생성할 수 있는 능력을 갖추어야 한다고 생각한다.
+
+처리 모델의 실제 동인은 데이터 수집 방법이다. 일괄batch로 수집된 데이터는 자연스럽게 일괄로 처리된다. 데이터가 지속적으로 수집될 때, 이는 자연스럽게 지속적으로 처리된다.
+
+미국 인구 조사는 일괄 데이터 수집의 좋은 예시다. 인구 조사는 주기적으로 시작되어 사람들이 집집마다 돌아다니며 미국 시민을 무차별적으로 발견하고 열거한다. 인구 조사가 처음 시작된 1790년에는 이것이 매우 합리적이었다. 당시 데이터 수집은 본질적으로 일괄 지향적이었으며, 말을 타고 돌아다니며 종이에 기록을 작성한 다음, 이 기록 묶음을 중앙 위치로 옮겨 인간이 몯느 수를 합산하는 과정을 포함했다. 요즘 인구 조사를 설명하면 왜 우리가 출생 및 사망 기록을 유지하고 인구 수를 지속적으로 또는 필요한 세분화 수준으로 산출하지 않는지 즉시 의문을 갖게 된다.
+
+이것은 극단적인 예이지만, 많은 데이터 전송 프로세스는 여전히 주기적은 덤프와 대량 전송 및 통합에 의존한다. 대량 덤프를 처리하는 유일한 자연스러운 방법은 일괄 프로세스를 사용하는 것이다. 그러나 이러한 프로세스가 지속적인 피드로 대체됨에 따라, 필요한 처리 리소스를 평탄화하고 지연 시간을 줄이기 위해 자연스럽게 지속적인 처리로 이동하기 시작한다.
