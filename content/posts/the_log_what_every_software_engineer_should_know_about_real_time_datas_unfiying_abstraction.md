@@ -29,9 +29,9 @@ Jay Kreps는 링크드인에서 중앙화된 DB와 모놀리스 설계가 한계
 데이터베이스, NoSQL, Key-Value 저장소, Replication, Paxos, 하둡, 버전 컨트롤 또는 거의 모든 소프트웨어 시스템을 이해하기 위해 로그를 알아야 한다. 하지만 대부분의 소프트웨어 엔지니어는 로그에 익숙하지 않다. 그는 이 점을 개선하기 위해 로그란 무엇인지, 로그를 데이터 통합, 실시간 처리과 시스템 구축에 어떻게 활용할 수 있는지에 대해 설명한다.
 
 > **Notes**
-> 
+>
 > **first and second generation key-value store**
-> 
+>
 > 본문에서 말하는 1세대와 2세대 key value 스토어란 링크드인이 자체적으로 구축하고 운영했던 두 세대의 분산 키-값 저장소를 말한다.<br>
 > 링크드인은 단순한 설계, 기능 제한, 내구성 문제를 가진 1세대 key-value 저장소인 Voldmort라는 오픈소스 저장소를 개발해 사용했다.
 > Voldmort의 한계를 보완하는 2세대 key-value 저장소인 Espresso 분산 데이터베이스를 운영한다.
@@ -311,11 +311,11 @@ The log also acts as a buffer that makes data production asynchronous from data 
 
 ![log_subscription](https://content.linkedin.com/content/dam/engineering/en-us/blog/migrated/log_subscription.png)
 
-예를 들어, 로그 개념은 각 변경에 대해 모든 구독자가 측정할 수 있는 논리적 시계를 제공한다. 
+예를 들어, 로그 개념은 각 변경에 대해 모든 구독자가 측정할 수 있는 논리적 시계를 제공한다.
 이로 인해 서로 다른 구독 시스템들의 상태를 서로 비교하고 이해하는 것이 훨씬 쉬워진다.
 각 시스템이 어디까지 읽었는지 시점point in time을 갖기 때문이다.
 
-좀 더 구체적으로 데이터베이스와 여러 캐싱 서버가 있는 단순한 경우를 생각해보자. 
+좀 더 구체적으로 데이터베이스와 여러 캐싱 서버가 있는 단순한 경우를 생각해보자.
 로그는 이 모든 시스템에 대한 업데이트를 동기화하고, 각 시스템의 시점ㅇ르 논리적으로 추론할 수 있는 방법을 제공한다.
 예를 드어, 로그 엔트리 X에 해당하는 레코드를 쓴 후 캐시에서 읽기를 해야 한다고 하자. 만약 오래된 데이터stale data를 보지 않으려면 X까지 복제하지 않은 캐시에서는 읽지 않도록 보장하면 된다.
 
@@ -461,7 +461,7 @@ For a long time, Kafka was a little unique (some would say odd) as an infrastruc
 
 이러한 경험은 내가 메시징 시스템에서 보았던 것과 데이터베이스 및 분산 시스템 내부에서 널리 사용되는 로그 개념을 결합하여 카프카를 구축하는 데 집중하게 된 계기가 되었다. 우리는 모든 활동 데이터에 대한 중앙 파이프라인 역할을 할 무언가를 원했고, 결국에는 하둡에서 데이터를 배포하거나 모니터링 데이터를 처리하는 등 다른 많은 용도로도 확장되기를 바랐다.
 
-오랫동안 카프카는 인프라 제품으로서 다소 독특한 존재였다. 데이터베이스도 아니고, 로그 파일 수집 시스템도 아니며, 전통적인 메시징 시스템도 아니었다. 그러나 최근 아마존은 키네시스라는 카프카와 매우 유사한 서비스를 제공하기 시작했다. 파티셔닝 처리 방식, 데이터 보존 방식, 그리고 카프카 API에서 고급 소비자high-level consumer와 저급 소비자low-level consumer 간 다소 특이한 구분 방식에 이르기까지 그 유사성은 놀라울 정도다. 
+오랫동안 카프카는 인프라 제품으로서 다소 독특한 존재였다. 데이터베이스도 아니고, 로그 파일 수집 시스템도 아니며, 전통적인 메시징 시스템도 아니었다. 그러나 최근 아마존은 키네시스라는 카프카와 매우 유사한 서비스를 제공하기 시작했다. 파티셔닝 처리 방식, 데이터 보존 방식, 그리고 카프카 API에서 고급 소비자high-level consumer와 저급 소비자low-level consumer 간 다소 특이한 구분 방식에 이르기까지 그 유사성은 놀라울 정도다.
 이 서비스에 대한 그들의 비전은 내가 설명하는 것과 정확히 일치하는 것으로 보인다. 즉 키네시스는 그들의 모든 분산 시스템들을 연결하는 파이프라인이지 EC2를 사용한 분산 스트림 처리의 기반이 되는 것이다.
 
 
@@ -708,3 +708,35 @@ This is an extreme example, but many data transfer processes still depend on tak
 미국 인구 조사는 일괄 데이터 수집의 좋은 예시다. 인구 조사는 주기적으로 시작되어 사람들이 집집마다 돌아다니며 미국 시민을 무차별적으로 발견하고 열거한다. 인구 조사가 처음 시작된 1790년에는 이것이 매우 합리적이었다. 당시 데이터 수집은 본질적으로 일괄 지향적이었으며, 말을 타고 돌아다니며 종이에 기록을 작성한 다음, 이 기록 묶음을 중앙 위치로 옮겨 인간이 몯느 수를 합산하는 과정을 포함했다. 요즘 인구 조사를 설명하면 왜 우리가 출생 및 사망 기록을 유지하고 인구 수를 지속적으로 또는 필요한 세분화 수준으로 산출하지 않는지 즉시 의문을 갖게 된다.
 
 이것은 극단적인 예이지만, 많은 데이터 전송 프로세스는 여전히 주기적은 덤프와 대량 전송 및 통합에 의존한다. 대량 덤프를 처리하는 유일한 자연스러운 방법은 일괄 프로세스를 사용하는 것이다. 그러나 이러한 프로세스가 지속적인 피드로 대체됨에 따라, 필요한 처리 리소스를 평탄화하고 지연 시간을 줄이기 위해 자연스럽게 지속적인 처리로 이동하기 시작한다.
+
+```
+LinkedIn, for example, has almost no batch data collection at all. The majority of our data is either activity data or database changes, both of which occur continuously. In fact, when you think about any business, the underlying mechanics are almost always a continuous process—events happen in real-time, as Jack Bauer would tell us. When data is collected in batches, it is almost always due to some manual step or lack of digitization or is a historical relic left over from the automation of some non-digital process. Transmitting and reacting to data used to be very slow when the mechanics were mail and humans did the processing. A first pass at automation always retains the form of the original process, so this often lingers for a long time.
+
+Production "batch" processing jobs that run daily are often effectively mimicking a kind of continuous computation with a window size of one day. The underlying data is, of course, always changing. These were actually so common at LinkedIn (and the mechanics of making them work in Hadoop so tricky) that we implemented a whole framework for managing incremental Hadoop workflows.
+
+Seen in this light, it is easy to have a different view of stream processing: it is just processing which includes a notion of time in the underlying data being processed and does not require a static snapshot of the data so it can produce output at a user-controlled frequency instead of waiting for the "end" of the data set to be reached. In this sense, stream processing is a generalization of batch processing, and, given the prevalence of real-time data, a very important generalization.
+```
+
+예를 들어, 링크드인은 배치 데이터 수집이 거의 없다.우리 데이터의 대부분은 활동 데이터이거나 데이터베이스 변경 사항이며, 이 두 가지 모두 지속적으로 발생한다. 사실, 어떤 비즈니스에 대해 생각해 보면, 그 기본 메커니즘은 거의 항상 연속적인 프로세스다.잭 바우어가 말했듯이 이벤트는 실시간으로 발생한다. 데이터가 배치로 수집될 때는 거의 항상 어떤 수동 단계나 디지털화의 부족 때문이거나, 비디지털 프로세스의 자동화에서 남은 역사적 유물 때문이다. 우편으로 처리하던 시절에는 데이터를 전송하고 반응하는 것이 매우 느렸다. 자동화의 첫 번째 시도는 항상 원래 프로세스의 형태를 유지하므로, 이는 종종 오랫동안 남아 있다.
+
+매일 실행되는 프로덕션 배치 처리 작업은 종종 1일의 윈도우 크기를 가진 일종의 연속적인 계산을 효과적으로 모방한다. 물론 기본 데이터는 항상 변경된다. 링크드인에서는 이러한 작업이 매우 흔했고 (그리고 Hadoop에서 이를 작동시키는 메커니즘이 매우 까다로웠기 때문에) 증분 Hadoop 워크플로우를 관리하기 위한 전체 프레임워크를 구현했다.
+
+이런 관점에서 보면 스트림 처리에 대해 다른 시각을 갖기 쉽다. 스트림 처리는 처리되는 기본 데이터에 시간 개념을 포함하고 데이터의 정적 스냅샷을 요구하지 않으므로 데이터 세트의 끝에 도달하기를 기다리는 대신, 사용자가 제어하는 빈도로 출력을 생성할 수 있는 처리 방식이다. 이런 의미에서 스트림 처리는 배치 처리의 일반화이며, 실시간 데이터의 보편성을 고려할 때 매우 중요한 일반화이다.
+
+```
+So why has the traditional view of stream processing been as a niche application? I think the biggest reason is that a lack of real-time data collection made continuous processing something of an academic concern.
+
+I think the lack of real-time data collection is likely what doomed the commercial stream-processing systems. Their customers were still doing file-oriented, daily batch processing for ETL and data integration. Companies building stream processing systems focused on providing processing engines to attach to real-time data streams, but it turned out that at the time very few people actually had real-time data streams. Actually, very early at my career at LinkedIn, a company tried to sell us a very cool stream processing system, but since all our data was collected in hourly files at that time, the best application we could come up with was to pipe the hourly files into the stream system at the end of the hour! They noted that this was a fairly common problem. The exception actually proves the rule here: finance, the one domain where stream processing has met with some success, was exactly the area where real-time data streams were already the norm and processing had become the bottleneck.
+
+Even in the presence of a healthy batch processing ecosystem, I think the actual applicability of stream processing as an infrastructure style is quite broad. I think it covers the gap in infrastructure between real-time request/response services and offline batch processing. For modern internet companies, I think around 25% of their code falls into this category.
+
+It turns out that the log solves some of the most critical technical problems in stream processing, which I'll describe, but the biggest problem that it solves is just making data available in real-time multi-subscriber data feeds. For those interested in more details, we have open sourced Samza, a stream processing system explicitly built on many of these ideas. We describe a lot of these applications in more detail in the documentation here.
+```
+
+그렇다면 왜 스트림 처리에 대한 전통적인 관점은 틈새niche 애플리케이션으로 여겨졌을까? 가장 큰 이유는 실시간 데이터 수집의 부재가 연속적인 처리를 다소 학문적인 관심사로 만들었기 때문이라고 생각한다.
+
+실시간 데이터 수집 부족이 상용 스트림 처리 시스템을 실패하게 만든 주요 원인일 가능성이 높다고 생각한다. 그들의 고객은 여전히 ETL 및 데이터 통합을 위해 파일 중심의 일일 배치 처리를 하고 있다. 스트림 처리 시스템을 구축하는 회사들은 실시간 데이터 스트림에 연결할 처리 엔진을 제공하는 데 중점을 두었지만, 당시에는 실제로 실시간 데이터 스트림을 가진 사람이 거의 없었다는 것이 드러났다. 사실 링크드인에서 내 경력 초기에 한 회사가 우리에게 매우 멋진 스트림 처리 시스템을 판매하려고 시도했지만, 당시 우리 모든 데이터는 시간별 파일로 수집되었기 때문에 우리가 생각해낼 수 있었던 최선의 애플리케이션은 매시간 말에 시간별 파일을 스트림 시스템으로 파이프 하는 것뿐이었다. 그들은 이것이 상당히 일반적인 문제라고 언급했다. 예외가 실제로 규칙을 증명하는 경우인데, 스트림 처리가 어느 정도 성공을 거둔 유일한 분야인 금융은 실시간 데이터 스트림이 이미 표준이었고 처리가 병목 현상이 된 바로 그 영역이었다.
+
+건강한 배치 처리 생태계가 존재하더라도, 인프라 스타일로서 스트림 처리의 실제 적용 가능성은 상당히 넓다. 이는 실시간 요청/응답 서비스와 오프라인 배치 처리 사이의 인프라 격차를 메운다고 생각한다. 현대 인터넷 기업의 경우, 코드의 약 25%가 이 범주에 속한다고 생각한다.
+
+로그는 스트림 처리에서 가장 중요한 기술적 문제 중 일부를 해결하는데, 이에 대해서는 설명하겠지만, 로그가 해결하는 가장 큰 문제는 실시간 다중 구독자 데이터 피드를 통해 데이터를 사용할 수 있게 만드는 것이다.
