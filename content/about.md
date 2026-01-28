@@ -1,68 +1,40 @@
 ---
-title: "About Me"
-date: "2024-06-07T17:00:00+09:00" # You can adjust this time to the current time or your preferred time.
-showDate: false
-showAuthor: false
-showReadingTime: false
+title: "About"
 ---
-I'm a backend engineer at MUSINSA, a fashion e-commerce platform with 10 million DAU. I strive to build stable and scalable services for users based on my years of experience.
+Software developer.
 
 ---
 
 ## Experience
 
-**MUSINSA (Dec 2022 - Present)**
-_MUSINSA is a leading fashion e-commerce platform in Korea with 10 million Daily Active Users (DAU)._
-- **Creator Marketplace (Jul 2024 - Present):** Rapidly launched an MVP for a new service connecting influencers and brands. Led operational efficiency and service expansion through continuous feature enhancements and automation. Optimized the content production pipeline, achieving cost savings and building a service structure capable of large-scale expansion.
-- **Release Board System (Mar 2024 - Jun 2024):** Designed and developed a new 'Release Board' system, a core content feature on MUSINSA's main page. Implemented a large-scale notification system targeting users and developed a React-based Admin UI to enhance operational efficiency.
-- **Legacy System Modernization (Sep 2023 - Mar 2024):** As part of MUSINSA 2.0, led the service architecture transition. Successfully migrated a PHP-based legacy system to Kotlin and modularized it, improving maintainability and development productivity.
-- **FashionTalk Development & Operation (Dec 2022 - Sep 2023):** Participated in the entire lifecycle of the 'FashionTalk' community service, from planning and MVP launch to enhancement and operation. Improved service quality and stability by building an Elasticsearch-based search system, enhancing CI/CD pipelines (introducing GitHub Actions, ArgoCD), and adopting a Kafka-based Event-driven Architecture.
+**Current Company (Oct 2025 - Present)**
+Employee #3. Building product.
+
+**MUSINSA (Dec 2022 - Oct 2025)**
+Fashion e-commerce. 10M DAU.
+- **Global Product Support (Aug - Sep 2025)**
+- **Creator Marketplace (Jul 2024 - Aug 2025):** MVP launch. Influencer-brand connection service. Built content production pipeline. Reduced costs.
+- **AI Product PoC with AWS (May 2025):** Deployed YOLOs, FashionCLIP to SageMaker. Used Bedrock, OpenSearch, HNSW. Published on [AWS Blog](https://aws.amazon.com/ko/blogs/tech/musinsa-ai-base-product-recommendation/) and [MUSINSA Tech Blog](https://techblog.musinsa.com/%EC%9D%B4-%EC%98%B7-%EB%AD%90%EC%A7%80-%EC%8A%A4%EB%83%85-%EC%9D%B4%EB%AF%B8%EC%A7%80%EB%A5%BC-ai%EB%A1%9C-%EA%B2%80%EC%83%89%ED%95%B4-%EB%B3%B8-6%EC%A3%BC%EA%B0%84%EC%9D%98-%EC%97%AC%EC%A0%95-f76296b716b7).
+- **Release Board System (Mar - Jun 2024):** New content feature on main page. Built notification system. React admin UI.
+- **Legacy Modernization (Sep 2023 - Mar 2024):** PHP to Kotlin migration. Modularized architecture.
+- **FashionTalk (Dec 2022 - Sep 2023):** Community service. Built Elasticsearch search. Kafka event system. Set up CI/CD with GitHub Actions, ArgoCD.
 
 **SALDA (May 2021 - Sep 2022)**
-_SALDA was a PropTech company that provided an app service called "Jalsalabo M" for apartment residents. The service is no longer operational._
-- Responsible for backend development of convenience services for apartment residents and facility management services for management offices.
-- **Visitor Car Reservation System:** Developed a visitor car reservation system based on Kotlin and Spring Boot. Integrated with external parking barrier control APIs and improved the system to be resilient to external system failures.
-- **Introduced Testing Culture:** In a project lacking test code, wrote over 100 unit and integration tests using JUnit5 and Mockk, significantly improving code stability.
+PropTech. Apartment resident services. Service shut down.
+- Visitor car reservation system. Kotlin, Spring Boot. Integrated external parking APIs.
+- Wrote 100+ tests with JUnit5, Mockk.
 
 ---
 
-## Skills & Interests
+## Skills
 
-- **Key Skills:** Kotlin, Spring Framework (Boot, MVC, WebFlux), JPA, Elasticsearch, Kafka, MySQL, CI/CD (GitHub Actions, ArgoCD)
-- **Architecture:** Event-Driven Architecture, Microservices, API Design
-- **Interests:**
-    - Large-scale traffic handling and distributed system design
-    - Data-driven recommendation systems and search quality improvement
-    - Test automation strategies and development productivity tools
-    - Learning new technology trends and in-depth application of existing knowledge
-
----
-
-## About homebrewlab Blog
-
-> "I try not to forget that what I've learned is just a small and superficial part.
-> New technologies are good, but I believe it's also important to reflect on what I already know or thought I knew.
-> I want to share what I newly discover in that process through this blog.
-> Just as I learn a lot from discussing problems with colleagues and seeing diverse perspectives,
-> I hope this space can also be a place to learn and grow together."
-
-Previously, I maintained a blog at [coco-log.tistory.com](https://coco-log.tistory.com/), where I have written over 200 posts since 2020, sharing my learning journey and insights.
-
-**homebrewlab** is my new small lab and a space for recording my learning process, practical experiences, and various thoughts.
-I plan to freely include not only technical knowledge but also the concerns and growth process I experience as a developer, and reflections on various topics.
-
-- **Wiki:** Technical documents, concept summaries, learning notes
-- **Tech Posts:** Sharing practical experiences, problem-solving processes, tutorials
-- **Essays:** Development culture, personal thoughts, retrospectives
+- TypeScript, Next.js
+- Kotlin, Spring, JPA, Elasticsearch, Kafka, MySQL
 
 ---
 
 ## Contact
 
-- **GitHub:** [eejihoon](https://github.com/eejihoon)
-- **LinkedIn:** [jihoon-lee](https://www.linkedin.com/in/jihoon-lee-2ab9a020a/)
-- **Email:** moradulee@gmail.com
-
-Thank you for visiting!
-I hope the posts here can be of some help or inspiration to you.
-If you have any questions or stories to share, please feel free to contact me anytime. 
+- [GitHub](https://github.com/eejihoon)
+- [LinkedIn](https://www.linkedin.com/in/jihoon-lee-2ab9a020a/)
+- moradulee@gmail.com
