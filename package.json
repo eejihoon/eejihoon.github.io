@@ -1,0 +1,13 @@
+{
+  "name": "homebrewlab",
+  "type": "module",
+  "scripts": {
+    "build": "bun run build.ts",
+    "dev": "bun run build.ts --watch",
+    "serve": "cd dist && python3 -m http.server 8000"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "marked": "^15.0.0"
+  }
+}

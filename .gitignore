@@ -1,13 +1,14 @@
-# Hugo build output
+# Build output
+/dist/
 /public/
 /resources/
 
-# Temporary Hugo files
+# Temporary files
 *.tmp
 *.bak
 
-# Hugo server log
-hugo_stats.json
+# Bun lockfile
+bun.lock
 
 # OS generated files
 .DS_Store
