@@ -1,5 +1,6 @@
 ---
-title: "About"
+layout: ../layouts/BaseLayout.astro
+title: "about"
 ---
 Software developer.
 

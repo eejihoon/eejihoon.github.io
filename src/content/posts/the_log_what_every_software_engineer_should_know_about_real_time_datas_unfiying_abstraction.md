@@ -1,16 +1,16 @@
-+++
-title = "The Log: What every software engineer should know about real-time data's unifying abstraction"
-author = "hoon"
-date = "2025-05-18"
-summary = "Jay Kreps가 2013년 LinkedIn Engineering Blog에 발행한 'The Log: What every software engineer should know about real-time data's unifying abstraction'을 읽고 번역한다. 로그가 데이터베이스, 분산 시스템, 실시간 데이터 처리 등 다양한 시스템에서 어떻게 핵심적인 역할을 하는지 설명하며, 로그의 개념, 데이터 일관성, 복제, 장애 복구, 이벤트 소싱, 스트림 처리 등 로그 중심 아키텍처의 원리와 실제 적용 사례를 다룬다."
-toc = true
-readTime = true
-autonumber = true
-math = true
-tags = ["distributed-systems", "logs", "real-time-data", "event-sourcing", "stream-processing", "database", "replication", "system-design"]
-showTags = true
-hideBackToTop = false
-+++
+---
+title: "The Log: What every software engineer should know about real-time data's unifying abstraction"
+author: "hoon"
+date: "2025-05-18"
+summary: "Jay Kreps가 2013년 LinkedIn Engineering Blog에 발행한 'The Log: What every software engineer should know about real-time data's unifying abstraction'을 읽고 번역한다. 로그가 데이터베이스, 분산 시스템, 실시간 데이터 처리 등 다양한 시스템에서 어떻게 핵심적인 역할을 하는지 설명하며, 로그의 개념, 데이터 일관성, 복제, 장애 복구, 이벤트 소싱, 스트림 처리 등 로그 중심 아키텍처의 원리와 실제 적용 사례를 다룬다."
+toc: true
+readTime: true
+autonumber: true
+math: true
+tags: ["distributed-systems", "logs", "real-time-data", "event-sourcing", "stream-processing", "database", "replication", "system-design"]
+showTags: true
+hideBackToTop: false
+---
 
 Apache Kafka Documentation을 훑어보다가 카프카의 저자인 Jay Kreps가 링크드인 엔지니어링 블로그에 2013년에 발행한 [The Log: What every software engineer should know about real-time data's unifying abstraction](https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying) 포스트를 읽게 되었다. Jay Kreps는 Neha Narhede, Jun Rao와 함께 2011년 Kafka의 초석이 되는 [Kafka: A Distributed Messeging System For Log Processing](https://notes.stephenholiday.com/Kafka.pdf) 논문의 원저자 중 한 명이다.
 

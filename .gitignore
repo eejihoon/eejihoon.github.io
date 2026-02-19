@@ -2,6 +2,7 @@
 /dist/
 /public/
 /resources/
+/.astro/
 
 # Temporary files
 *.tmp
@@ -22,6 +23,7 @@ dehydrated_ πολλές γλώσσες
 # Editor directories and files
 .idea/
 .vscode/
+.obsidian/
 *.sublime-project
 *.sublime-workspace
 

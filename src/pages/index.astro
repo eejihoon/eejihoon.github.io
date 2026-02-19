@@ -1,0 +1,37 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+function formatDate(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
+
+const posts = (await getCollection("posts"))
+  .filter((post) => post.data.draft !== true && post.body.trim().length > 0)
+  .sort((a, b) => {
+    const aTime = a.data.date?.getTime() ?? 0;
+    const bTime = b.data.date?.getTime() ?? 0;
+    return bTime - aTime;
+  });
+---
+
+<BaseLayout title="--verbose">
+  <h1>--verbose</h1>
+  <ul class="post-list">
+    {
+      posts.map((post) => {
+        const postTitle = post.data.title ?? post.slug;
+        return (
+          <li>
+            {post.data.date && (
+              <>
+                <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>{" "}
+              </>
+            )}
+            <a href={`/posts/${post.slug}/`}>{postTitle}</a>
+          </li>
+        );
+      })
+    }
+  </ul>
+</BaseLayout>
