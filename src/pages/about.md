@@ -8,8 +8,8 @@ Software developer.
 
 ## Experience
 
-**Current Company (Oct 2025 - Present)**
-Employee #3. Building product.
+**teamoverflowing (Oct 2025 - Present)**
+Building product.
 
 **MUSINSA (Dec 2022 - Oct 2025)**
 Fashion e-commerce. 10M DAU.
