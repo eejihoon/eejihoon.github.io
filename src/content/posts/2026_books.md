@@ -1,5 +1,5 @@
 ---
-date: 2026-04-01T16:10:48+09:00
+date: 2026-05-29T11:09:26+09:00
 draft: false
 title: 2026 Books
 toc: true
